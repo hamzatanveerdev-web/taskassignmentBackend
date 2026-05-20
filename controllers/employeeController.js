@@ -57,7 +57,17 @@ exports.addEmployee = async (req, res, next) => {
     await user.save();
 
     // Send invitation email
-    await sendInviteEmail(email, fullName, inviteToken);
+   const emailResult = await sendInviteEmail(email, fullName, inviteToken);
+
+    console.log("EMAIL RESULT:", emailResult);
+
+    if (!emailResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: "Email sending failed",
+        error: emailResult.error,
+      });
+    }
 
     res.status(201).json({
       success: true,
