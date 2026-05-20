@@ -25,16 +25,30 @@ const transporter = nodemailer.createTransport({
     rejectUnauthorized: false,
   },
 });
-
-// Verify SMTP connection
-transporter.verify(function (error, success) {
-  if (error) {
-    console.log("SMTP ERROR:", error);
-  } else {
-    console.log("SMTP SERVER READY");
-  }
+const transporter = nodemailer.createTransport({
+  host: process.env.NODEMAILER_HOST,
+  port: process.env.NODEMAILER_PORT,
+  secure: false,
+  auth: {
+    user: process.env.NODEMAILER_USER,
+    pass: process.env.NODEMAILER_PASSWORD,
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+  tls: {
+    rejectUnauthorized: false,
+  },
 });
 
+(async () => {
+  try {
+    await transporter.verify();
+    console.log("SMTP SERVER READY");
+  } catch (error) {
+    console.log("SMTP VERIFY ERROR:", error);
+  }
+})();
 // ================= SEND INVITE EMAIL =================
 
 exports.sendInviteEmail = async (email, fullName, inviteToken) => {
