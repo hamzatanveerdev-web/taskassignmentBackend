@@ -1,31 +1,19 @@
 const nodemailer = require("nodemailer");
 
 console.log("Nodemailer configuration:", {
-  host: process.env.NODEMAILER_HOST,
-  port: process.env.NODEMAILER_PORT,
   user: process.env.NODEMAILER_USER,
 });
 
-// Create transporter
-
-
-
+// Gmail Transporter
 const transporter = nodemailer.createTransport({
-  host: process.env.NODEMAILER_HOST,
-  port: process.env.NODEMAILER_PORT,
-  secure: false,
+  service: "gmail",
   auth: {
     user: process.env.NODEMAILER_USER,
     pass: process.env.NODEMAILER_PASSWORD,
   },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-  tls: {
-    rejectUnauthorized: false,
-  },
 });
 
+// Verify Gmail Connection
 (async () => {
   try {
     await transporter.verify();
@@ -34,6 +22,7 @@ const transporter = nodemailer.createTransport({
     console.log("SMTP VERIFY ERROR:", error);
   }
 })();
+
 // ================= SEND INVITE EMAIL =================
 
 exports.sendInviteEmail = async (email, fullName, inviteToken) => {
