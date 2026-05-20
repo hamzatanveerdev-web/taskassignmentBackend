@@ -7,24 +7,9 @@ console.log("Nodemailer configuration:", {
 });
 
 // Create transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.NODEMAILER_HOST,
-  port: process.env.NODEMAILER_PORT,
-  secure: false,
-  auth: {
-    user: process.env.NODEMAILER_USER,
-    pass: process.env.NODEMAILER_PASSWORD,
-  },
 
-  // Fix timeout issues on Render
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
 
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
+
 const transporter = nodemailer.createTransport({
   host: process.env.NODEMAILER_HOST,
   port: process.env.NODEMAILER_PORT,
