@@ -1,14 +1,17 @@
 const socketIO = require('socket.io');
 const User = require('../models/User');
 const { sendPushNotification } = require('../controllers/pushController');
+const dotenv = require('dotenv');
+dotenv.config();
 
 const setupSocket = (server) => {
-  const io = socketIO(server, {
-    cors: {
-      origin: process.env.FRONTEND_URL,
-      methods: ['GET', 'POST'],
-    },
-  });
+ const io = socketIO(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL ,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
 
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
