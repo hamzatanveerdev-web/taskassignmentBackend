@@ -1,39 +1,41 @@
-const { Resend } = require("resend");
+const Brevo = require("@getbrevo/brevo");
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const client = Brevo.ApiClient.instance;
+client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
+
+const apiInstance = new Brevo.TransactionalEmailsApi();
+
+const sendEmail = async (to, toName, subject, htmlContent) => {
+  const email = new Brevo.SendSmtpEmail();
+  email.subject = subject;
+  email.htmlContent = htmlContent;
+  email.sender = { name: "Task Manager", email: process.env.NODEMAILER_USER };
+  email.to = [{ email: to, name: toName }];
+  return await apiInstance.sendTransacEmail(email);
+};
 
 // ================= SEND INVITE EMAIL =================
-
 exports.sendInviteEmail = async (email, fullName, inviteToken) => {
   try {
     const inviteLink = `${process.env.FRONTEND_URL}/setup-password/${inviteToken}`;
-
-    const { error } = await resend.emails.send({
-      from: "Task Manager <onboarding@resend.dev>", // use this until you add a domain
-      to: email,
-      subject: "Welcome - Setup Your Password",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
-            <h2 style="color: #333;">Welcome to Task Management System!</h2>
-            <p style="color: #666; font-size: 16px;">Hi ${fullName},</p>
-            <p style="color: #666; font-size: 16px;">You have been invited to join our Task Management System.</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${inviteLink}" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                Setup Your Password
-              </a>
-            </div>
-            <p style="color: #999; font-size: 12px;">If button doesn't work:<br />${inviteLink}</p>
-            <p style="color: #999; font-size: 12px;">This link expires in 24 hours.</p>
-            <hr />
-            <p style="color: #999; font-size: 12px;">Best regards,<br />Task Management Team</p>
+    await sendEmail(email, fullName, "Welcome - Setup Your Password", `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+          <h2 style="color: #333;">Welcome to Task Management System!</h2>
+          <p style="color: #666;">Hi ${fullName},</p>
+          <p style="color: #666;">You have been invited to join our Task Management System.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${inviteLink}" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              Setup Your Password
+            </a>
           </div>
+          <p style="color: #999; font-size: 12px;">If button doesn't work:<br/>${inviteLink}</p>
+          <p style="color: #999; font-size: 12px;">This link expires in 24 hours.</p>
+          <hr/>
+          <p style="color: #999; font-size: 12px;">Best regards,<br/>Task Management Team</p>
         </div>
-      `,
-    });
-
-    if (error) throw error;
-
+      </div>
+    `);
     console.log("EMAIL SENT successfully");
     return { success: true, message: "Email sent successfully" };
   } catch (error) {
@@ -43,24 +45,15 @@ exports.sendInviteEmail = async (email, fullName, inviteToken) => {
 };
 
 // ================= TASK ASSIGNMENT EMAIL =================
-
 exports.sendTaskAssignmentEmail = async (email, fullName, taskTitle, dueDate) => {
   try {
-    const { error } = await resend.emails.send({
-      from: "Task Manager <onboarding@resend.dev>",
-      to: email,
-      subject: `New Task Assigned: ${taskTitle}`,
-      html: `
-        <h2>New Task Assigned</h2>
-        <p>Hello ${fullName},</p>
-        <p>A new task has been assigned to you.</p>
-        <p><strong>Task:</strong> ${taskTitle}</p>
-        <p><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString()}</p>
-      `,
-    });
-
-    if (error) throw error;
-
+    await sendEmail(email, fullName, `New Task Assigned: ${taskTitle}`, `
+      <h2>New Task Assigned</h2>
+      <p>Hello ${fullName},</p>
+      <p>A new task has been assigned to you.</p>
+      <p><strong>Task:</strong> ${taskTitle}</p>
+      <p><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString()}</p>
+    `);
     console.log("TASK EMAIL SENT successfully");
     return { success: true };
   } catch (error) {
@@ -70,22 +63,13 @@ exports.sendTaskAssignmentEmail = async (email, fullName, taskTitle, dueDate) =>
 };
 
 // ================= NOTIFICATION EMAIL =================
-
 exports.sendNotificationEmail = async (email, fullName, subject, message) => {
   try {
-    const { error } = await resend.emails.send({
-      from: "Task Manager <onboarding@resend.dev>",
-      to: email,
-      subject,
-      html: `
-        <h2>${subject}</h2>
-        <p>Hello ${fullName},</p>
-        <p>${message}</p>
-      `,
-    });
-
-    if (error) throw error;
-
+    await sendEmail(email, fullName, subject, `
+      <h2>${subject}</h2>
+      <p>Hello ${fullName},</p>
+      <p>${message}</p>
+    `);
     console.log("NOTIFICATION EMAIL SENT successfully");
     return { success: true };
   } catch (error) {
