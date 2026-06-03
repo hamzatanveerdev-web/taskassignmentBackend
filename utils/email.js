@@ -1,17 +1,22 @@
-const { TransactionalEmailsApi, SendSmtpEmail, ApiClient } = require("@getbrevo/brevo");
-
-const client = ApiClient.instance;
-client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
-
-const apiInstance = new TransactionalEmailsApi();
+const axios = require("axios");
 
 const sendEmail = async (to, toName, subject, htmlContent) => {
-  const email = new SendSmtpEmail();
-  email.subject = subject;
-  email.htmlContent = htmlContent;
-  email.sender = { name: "Task Manager", email: process.env.NODEMAILER_USER };
-  email.to = [{ email: to, name: toName }];
-  return await apiInstance.sendTransacEmail(email);
+  const response = await axios.post(
+    "https://api.brevo.com/v3/smtp/email",
+    {
+      sender: { name: "Task Manager", email: process.env.NODEMAILER_USER },
+      to: [{ email: to, name: toName }],
+      subject: subject,
+      htmlContent: htmlContent,
+    },
+    {
+      headers: {
+        "api-key": process.env.BREVO_API_KEY,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return response.data;
 };
 
 // ================= SEND INVITE EMAIL =================
@@ -39,7 +44,7 @@ exports.sendInviteEmail = async (email, fullName, inviteToken) => {
     console.log("EMAIL SENT successfully");
     return { success: true, message: "Email sent successfully" };
   } catch (error) {
-    console.log("EMAIL SENDING ERROR:", error);
+    console.log("EMAIL SENDING ERROR:", error?.response?.data || error.message);
     return { success: false, error: error.message };
   }
 };
@@ -57,7 +62,7 @@ exports.sendTaskAssignmentEmail = async (email, fullName, taskTitle, dueDate) =>
     console.log("TASK EMAIL SENT successfully");
     return { success: true };
   } catch (error) {
-    console.log("TASK EMAIL ERROR:", error);
+    console.log("TASK EMAIL ERROR:", error?.response?.data || error.message);
     return { success: false, error: error.message };
   }
 };
@@ -73,7 +78,7 @@ exports.sendNotificationEmail = async (email, fullName, subject, message) => {
     console.log("NOTIFICATION EMAIL SENT successfully");
     return { success: true };
   } catch (error) {
-    console.log("NOTIFICATION EMAIL ERROR:", error);
+    console.log("NOTIFICATION EMAIL ERROR:", error?.response?.data || error.message);
     return { success: false, error: error.message };
   }
 };
