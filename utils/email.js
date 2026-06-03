@@ -1,12 +1,12 @@
-const Brevo = require("@getbrevo/brevo");
+const { TransactionalEmailsApi, SendSmtpEmail, ApiClient } = require("@getbrevo/brevo");
 
-const client = Brevo.ApiClient.instance;
+const client = ApiClient.instance;
 client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
 
-const apiInstance = new Brevo.TransactionalEmailsApi();
+const apiInstance = new TransactionalEmailsApi();
 
 const sendEmail = async (to, toName, subject, htmlContent) => {
-  const email = new Brevo.SendSmtpEmail();
+  const email = new SendSmtpEmail();
   email.subject = subject;
   email.htmlContent = htmlContent;
   email.sender = { name: "Task Manager", email: process.env.NODEMAILER_USER };
