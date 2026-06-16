@@ -1,6 +1,6 @@
 // controllers/attendanceController.js
 
-const Attendance = require("../models/Attendance");
+const Attendance = require("../models/attendance");
 
 // GET TODAY DATE HELPER
 const getToday = () => new Date().toISOString().split("T")[0];
