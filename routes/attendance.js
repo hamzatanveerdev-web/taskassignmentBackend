@@ -6,7 +6,7 @@ const {
   markCheckOut,
   getMyAttendance,
   getAllAttendance,
-} = require('../controllers/attendanceController');
+} = require('../controllers/attendance');
 
 const { protect } = require('../middleware/auth');
 
