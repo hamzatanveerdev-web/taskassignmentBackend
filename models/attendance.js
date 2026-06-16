@@ -14,12 +14,12 @@ const attendanceSchema = new mongoose.Schema(
     },
 
     checkIn: {
-      type: Date,
+      type: String, // "09:00:00"
       default: null,
     },
 
     checkOut: {
-      type: Date,
+      type: String,
       default: null,
     },
 
