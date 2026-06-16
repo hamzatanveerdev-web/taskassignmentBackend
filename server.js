@@ -9,6 +9,7 @@ const setupSocket = require('./config/socket');
 const { errorHandler } = require('./middleware/errorHandler');
 
 // Import routes
+const attendanceRoutes = require('./routes/attendance');
 const authRoutes = require('./routes/authRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
 const taskRoutes = require('./routes/taskRoutes');
@@ -70,6 +71,7 @@ app.use('/api/v1/employees', employeeRoutes);
 app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/push', pushRoutes);
+app.use('/api/v1/attendance', attendanceRoutes);
 
 // Health check route
 app.get('/api/v1/health', (req, res) => {
