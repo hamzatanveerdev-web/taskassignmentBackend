@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-
+//mongo db schema for employee attendance store 
 const attendanceSchema = new mongoose.Schema(
   {
     employeeId: {
