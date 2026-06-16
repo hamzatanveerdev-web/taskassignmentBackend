@@ -1,25 +1,29 @@
-const mongoose = require('mongoose');
-//mongo db schema for employee attendance store 
-const attendanceSchema = new mongoose.Schema(
+// models/Attendance.js
+
+const mongoose = require("mongoose");
+
+const AttendanceSchema = new mongoose.Schema(
   {
     employeeId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
+      index: true,
     },
 
     date: {
       type: String, // "2026-06-16"
       required: true,
+      index: true,
     },
 
     checkIn: {
-      type: String, // "09:00:00"
+      type: Date,
       default: null,
     },
 
     checkOut: {
-      type: String,
+      type: Date,
       default: null,
     },
 
@@ -31,7 +35,7 @@ const attendanceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// prevent duplicate attendance per day
-attendanceSchema.index({ employeeId: 1, date: 1 }, { unique: true });
+// Prevent duplicate attendance per day per employee
+AttendanceSchema.index({ employeeId: 1, date: 1 }, { unique: true });
 
-module.exports = mongoose.model('Attendance', attendanceSchema);
+module.exports = mongoose.model("Attendance", AttendanceSchema);
