@@ -7,41 +7,62 @@ const getToday = () => new Date().toISOString().split("T")[0];
 
 
 // ===============================
-// CHECK IN
+// CHECK IN (START TIMER)
 // ===============================
 exports.markCheckIn = async (req, res) => {
   try {
     const employeeId = req.user.id;
     const today = getToday();
+    const now = new Date();
 
     let attendance = await Attendance.findOne({
       employeeId,
       date: today,
     });
 
-    // Already checked in
-    if (attendance?.checkIn) {
-      return res.status(400).json({
-        success: false,
-        message: "Already checked in today",
-      });
-    }
-
     if (!attendance) {
+      // First check-in of the day
       attendance = await Attendance.create({
         employeeId,
         date: today,
-        checkIn: new Date(),
+        checkIn: now,
+        currentSessionStartTime: now,
+        sessions: [{
+          checkIn: now,
+          checkOut: null,
+          duration: 0
+        }],
+        accumulatedSeconds: 0
       });
     } else {
-      attendance.checkIn = new Date();
+      // Already checked in and timer is running
+      if (attendance.currentSessionStartTime) {
+        return res.status(400).json({
+          success: false,
+          message: "Already checked in",
+          status: "check_out",
+          accumulatedSeconds: attendance.accumulatedSeconds,
+          attendance
+        });
+      }
+
+      // New session (re-check-in after checkout)
+      attendance.currentSessionStartTime = now;
+      attendance.checkOut = null; // Reset checkout for new session
+      attendance.sessions.push({
+        checkIn: now,
+        checkOut: null,
+        duration: 0
+      });
       await attendance.save();
     }
 
     return res.status(200).json({
       success: true,
       message: "Check-in successful",
-      attendance,
+      status: "check_out",
+      accumulatedSeconds: attendance.accumulatedSeconds,
+      attendance
     });
   } catch (err) {
     return res.status(500).json({
@@ -53,12 +74,13 @@ exports.markCheckIn = async (req, res) => {
 
 
 // ===============================
-// CHECK OUT
+// CHECK OUT (STOP TIMER)
 // ===============================
 exports.markCheckOut = async (req, res) => {
   try {
     const employeeId = req.user.id;
     const today = getToday();
+    const now = new Date();
 
     const attendance = await Attendance.findOne({
       employeeId,
@@ -72,29 +94,87 @@ exports.markCheckOut = async (req, res) => {
       });
     }
 
-    if (attendance.checkOut) {
+    if (!attendance.currentSessionStartTime) {
       return res.status(400).json({
         success: false,
-        message: "Already checked out today",
+        message: "Not currently checked in",
       });
     }
 
-    attendance.checkOut = new Date();
+    // Calculate session duration
+    const sessionDuration = Math.floor((now - attendance.currentSessionStartTime) / 1000); // in seconds
+
+    // Update the current session
+    const currentSession = attendance.sessions[attendance.sessions.length - 1];
+    currentSession.checkOut = now;
+    currentSession.duration = sessionDuration;
+
+    // Add to accumulated time
+    attendance.accumulatedSeconds += sessionDuration;
+    attendance.currentSessionStartTime = null;
+    attendance.checkOut = now;
 
     // Calculate total hours
-    if (attendance.checkIn) {
-      const diff = attendance.checkOut - attendance.checkIn;
-      attendance.totalHours = Number(
-        (diff / (1000 * 60 * 60)).toFixed(2)
-      );
-    }
+    attendance.totalHours = Number(
+      (attendance.accumulatedSeconds / (60 * 60)).toFixed(2)
+    );
 
     await attendance.save();
 
     return res.status(200).json({
       success: true,
       message: "Check-out successful",
-      attendance,
+      status: "check_in",
+      accumulatedSeconds: attendance.accumulatedSeconds,
+      sessionDuration: sessionDuration,
+      attendance
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+
+// ===============================
+// GET TIMER STATUS
+// ===============================
+exports.getTimerStatus = async (req, res) => {
+  try {
+    const employeeId = req.user.id;
+    const today = getToday();
+
+    const attendance = await Attendance.findOne({
+      employeeId,
+      date: today,
+    });
+
+    if (!attendance) {
+      return res.status(200).json({
+        success: true,
+        status: "check_in",
+        accumulatedSeconds: 0,
+        isRunning: false
+      });
+    }
+
+    const isRunning = !!attendance.currentSessionStartTime;
+    let currentSessionSeconds = 0;
+
+    if (isRunning && attendance.currentSessionStartTime) {
+      // Calculate current session duration
+      currentSessionSeconds = Math.floor((new Date() - attendance.currentSessionStartTime) / 1000);
+    }
+
+    return res.status(200).json({
+      success: true,
+      status: isRunning ? "check_out" : "check_in",
+      accumulatedSeconds: attendance.accumulatedSeconds + currentSessionSeconds,
+      isRunning,
+      currentSessionSeconds,
+      attendance
     });
   } catch (err) {
     return res.status(500).json({
@@ -142,14 +222,14 @@ exports.getTodayAttendance = async (req, res) => {
       date: today,
     });
 
+    const isRunning = attendance?.currentSessionStartTime ? true : false;
+
     return res.status(200).json({
       success: true,
-      status: attendance
-        ? attendance.checkOut
-          ? "check_out"
-          : "check_in"
-        : "check_in",
-      attendance,
+      status: isRunning ? "check_out" : "check_in",
+      accumulatedSeconds: attendance?.accumulatedSeconds || 0,
+      isRunning,
+      attendance
     });
   } catch (err) {
     return res.status(500).json({

@@ -8,14 +8,18 @@ exports.protect = async (req, res, next) => {
   }
 
   if (!token) {
+    console.log('Protect middleware: No token found');
     return res.status(401).json({ success: false, message: 'Not authorized to access this route' });
   }
 
   try {
+    console.log('Protect middleware: Verifying token');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Protect middleware: Token decoded successfully', decoded);
     req.user = decoded;
     next();
   } catch (error) {
+    console.log('Protect middleware: Token verification failed', error.message);
     return res.status(401).json({ success: false, message: 'Not authorized to access this route' });
   }
 };
