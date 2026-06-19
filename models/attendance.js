@@ -16,6 +16,10 @@ const AttendanceSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+ status: {
+      type: String,
+      default: "Absent"
+    },
 
     checkIn: {
       type: Date,

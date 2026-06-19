@@ -7,6 +7,7 @@ const http = require('http');
 const connectDB = require('./config/database');
 const setupSocket = require('./config/socket');
 const { errorHandler } = require('./middleware/errorHandler');
+const cron = require('node-cron');
 
 // Import routes
 const attendanceRoutes = require('./routes/attendance');
@@ -15,6 +16,9 @@ const employeeRoutes = require('./routes/employeeRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const pushRoutes = require('./routes/pushRoutes');
+
+// Import attendance controller for cron job
+const { autoMarkAbsentAttendance } = require('./controllers/attendance');
 
 connectDB().then(() => {
   createAdmin();
@@ -92,6 +96,33 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+
+
+
+  // Schedule auto-mark absent attendance job at 10:00 AM every day
+  cron.schedule('45 14 * * *', async () => {
+    console.log('🕙 Running auto-mark absent attendance job at 10:00 AM');
+    try {
+      // Create mock req and res objects for the function
+      const mockReq = {};
+      const mockRes = {
+        status: (code) => ({
+          json: (data) => {
+            console.log(`Auto-mark absent attendance response:`, data);
+          }
+        })
+      };
+      
+      await autoMarkAbsentAttendance(mockReq, mockRes);
+    } catch (error) {
+      console.error('❌ Error in auto-mark absent attendance cron job:', error);
+    }
+  }, {
+    timezone: 'Asia/Karachi' // Set to your timezone
+  });
+  
+  console.log('✅ Cron job scheduled: Auto-mark absent attendance at 10:00 AM daily');
 });
  
 // Handle unhandled promise rejections
