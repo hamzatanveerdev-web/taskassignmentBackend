@@ -157,7 +157,11 @@ exports.markCheckIn = async (req, res) => {
         duration: 0
       });
       
-      if (!attendance.status || attendance.status === 'Absent') {
+      // If employee was marked absent, change status to Late when they check in
+      if (attendance.status === 'Absent') {
+        attendance.status = 'Late';
+        attendance.checkIn = now; // Update check-in time
+      } else if (!attendance.status) {
         attendance.status = status;
       }
       
