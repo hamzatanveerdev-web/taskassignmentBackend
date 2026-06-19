@@ -1,4 +1,3 @@
-// controllers/attendanceController.js
 
 const Attendance = require("../models/attendance");
 const User = require("../models/User");
@@ -44,7 +43,8 @@ function formatTime(date) {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: true
+      hour12: true,
+      timeZone: TIMEZONE
     });
   } catch {
     return '-';
@@ -58,7 +58,8 @@ function formatDate(date) {
     return d.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: '2-digit'
+      day: '2-digit',
+      timeZone: TIMEZONE
     });
   } catch {
     return '-';
@@ -190,7 +191,7 @@ exports.markCheckIn = async (req, res) => {
 };
 
 // ===============================
-// CHECK OUT
+// CHECK OUT - FIXED
 // ===============================
 exports.markCheckOut = async (req, res) => {
   try {
@@ -217,9 +218,11 @@ exports.markCheckOut = async (req, res) => {
       });
     }
 
+    // 🔥 FIX: Get check-in time
     const checkInTime = new Date(attendance.currentSessionStartTime);
     const checkOutTime = now;
 
+    // 🔥 Calculate duration
     const durationMs = checkOutTime.getTime() - checkInTime.getTime();
     const sessionDuration = Math.floor(durationMs / 1000);
 
@@ -230,6 +233,7 @@ exports.markCheckOut = async (req, res) => {
       });
     }
 
+    // 🔥 Get current session
     const sessions = attendance.sessions || [];
     const currentSession = sessions[sessions.length - 1];
 
@@ -240,17 +244,27 @@ exports.markCheckOut = async (req, res) => {
       });
     }
 
+    // 🔥 CRITICAL FIX: Store previous accumulated seconds
     const previousAccumulated = attendance.accumulatedSeconds || 0;
 
+    // 🔥 Update current session
     currentSession.checkOut = checkOutTime;
     currentSession.duration = sessionDuration;
 
+    // 🔥 CRITICAL FIX: Add ONLY current session duration to accumulated
     attendance.accumulatedSeconds = previousAccumulated + sessionDuration;
     attendance.currentSessionStartTime = null;
     attendance.checkOut = checkOutTime;
     attendance.totalHours = Number((attendance.accumulatedSeconds / 3600).toFixed(2));
 
     await attendance.save();
+
+    // 🔥 Debug log
+    console.log('📊 Check-out Debug:');
+    console.log('Previous Accumulated:', previousAccumulated);
+    console.log('Session Duration:', sessionDuration);
+    console.log('New Accumulated:', attendance.accumulatedSeconds);
+    console.log('Total Hours:', attendance.totalHours);
 
     return res.status(200).json({
       success: true,
@@ -281,7 +295,7 @@ exports.markCheckOut = async (req, res) => {
 };
 
 // ===============================
-// GET TIMER STATUS
+// GET TIMER STATUS - FIXED
 // ===============================
 exports.getTimerStatus = async (req, res) => {
   try {
@@ -309,6 +323,7 @@ exports.getTimerStatus = async (req, res) => {
     const isRunning = !!attendance.currentSessionStartTime;
     let totalSeconds = attendance.accumulatedSeconds || 0;
 
+    // 🔥 FIX: If running, add current session seconds
     if (isRunning && attendance.currentSessionStartTime) {
       const now = getPakistanTime();
       const checkInTime = new Date(attendance.currentSessionStartTime);
@@ -316,6 +331,7 @@ exports.getTimerStatus = async (req, res) => {
       totalSeconds = (attendance.accumulatedSeconds || 0) + currentSessionSeconds;
     }
 
+    // 🔥 Calculate total hours from total seconds
     const totalHours = Number((totalSeconds / 3600).toFixed(2));
 
     return res.status(200).json({
@@ -345,7 +361,7 @@ exports.getTimerStatus = async (req, res) => {
 };
 
 // ===============================
-// GET TODAY ATTENDANCE
+// GET TODAY ATTENDANCE - FIXED
 // ===============================
 exports.getTodayAttendance = async (req, res) => {
   try {
@@ -420,6 +436,7 @@ exports.getMyAttendance = async (req, res) => {
       .populate('employeeId', 'fullName email employeeId')
       .sort({ date: -1, createdAt: -1 });
 
+    // Format each record
     const formattedAttendance = attendance.map(record => {
       const totalHours = Number(((record.accumulatedSeconds || 0) / 3600).toFixed(2));
       
@@ -552,13 +569,12 @@ exports.getAllAttendance = async (req, res) => {
   }
 };
 
-// ===============================
-// AUTO MARK ABSENT
-// ===============================
+
 exports.autoMarkAbsentAttendance = async (req, res) => {
   try {
     const today = getToday();
     
+    // Get all active employees
     const employees = await User.find({ 
       isActive: true,
       role: 'employee'
@@ -577,11 +593,13 @@ exports.autoMarkAbsentAttendance = async (req, res) => {
     const alreadyMarkedEmployees = [];
     
     for (const employee of employees) {
+      // Check if attendance already exists for today
       const existingAttendance = await Attendance.findOne({
         employeeId: employee._id,
         date: today
       });
       
+      // If attendance already exists, skip
       if (existingAttendance) {
         alreadyMarkedCount++;
         alreadyMarkedEmployees.push({
@@ -592,14 +610,15 @@ exports.autoMarkAbsentAttendance = async (req, res) => {
         continue;
       }
       
+      // Create ABSENT attendance record
       const attendance = new Attendance({
         employeeId: employee._id,
         date: today,
-        checkIn: null,
-        checkOut: null,
-        status: 'Absent',
-        totalHours: 0,
-        sessions: [],
+        checkIn: null,        // No check-in
+        checkOut: null,       // No check-out
+        status: 'Absent',         // Marked as Absent
+        totalHours: 0,            // 0 hours worked
+        sessions: [],             // No sessions
         currentSessionStartTime: null,
         accumulatedSeconds: 0
       });
@@ -613,6 +632,7 @@ exports.autoMarkAbsentAttendance = async (req, res) => {
       });
     }
     
+    // Log the operation
     console.log(`✅ Auto-Absent marking completed at ${new Date().toLocaleString()}`);
     console.log(`📊 Total Employees: ${employees.length}`);
     console.log(`❌ Marked Absent: ${markedAbsentCount}`);
