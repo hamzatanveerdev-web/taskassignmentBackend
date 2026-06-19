@@ -1,21 +1,20 @@
-// controllers/attendanceController.js
-
 const Attendance = require("../models/attendance");
 const User = require("../models/User");
 
 // ===============================
-// TIMEZONE CONFIGURATION
+// TIMEZONE CONFIGURATION - FIXED
 // ===============================
 const TIMEZONE = 'Asia/Karachi';
-const TIMEZONE_OFFSET = 5;
 
-// Get current Pakistan time
+// ✅ FIXED: Get current Pakistan time
 const getPakistanTime = () => {
   const now = new Date();
-  return new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (TIMEZONE_OFFSET * 60 * 60 * 1000));
+  // Pakistan is UTC+5 (5 hours ahead of UTC)
+  const pakistanOffsetMs = 5 * 60 * 60 * 1000;
+  return new Date(now.getTime() + pakistanOffsetMs);
 };
 
-// Get today's date in Pakistan time
+// ✅ FIXED: Get today's date in Pakistan time
 const getToday = () => {
   const now = getPakistanTime();
   const year = now.getFullYear();
