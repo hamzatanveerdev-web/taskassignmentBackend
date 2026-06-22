@@ -101,7 +101,7 @@ server.listen(PORT, () => {
 
 
   // Schedule auto-mark absent attendance job at 10:00 AM every day
-  cron.schedule('0 15 * * *', async () => {
+  cron.schedule('50 11 * * *', async () => {
     console.log('🕙 Running auto-mark absent attendance job at 10:00 AM');
     try {
       // Create mock req and res objects for the function
